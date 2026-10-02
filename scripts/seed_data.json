@@ -1,0 +1,43 @@
+{
+  "customers": {
+    "aarav": {"name": "Aarav Mehta", "email": "aarav.mehta@example.com", "phone": "+91 90000 10001"},
+    "priya": {"name": "Priya Sharma", "email": "priya.sharma@example.com", "phone": "+91 90000 10002"},
+    "rohan": {"name": "Rohan Iyer", "email": "rohan.iyer@example.com", "phone": "+91 90000 10003"},
+    "sneha": {"name": "Sneha Reddy", "email": "sneha.reddy@example.com", "phone": "+91 90000 10004"},
+    "kabir": {"name": "Kabir Singh", "email": "kabir.singh@example.com", "phone": "+91 90000 10005"},
+    "ananya": {"name": "Ananya Das", "email": "ananya.das@example.com", "phone": "+91 90000 10006"}
+  },
+  "tickets": [
+    {"customer": "aarav", "subject": "Charged twice for order ORD-1001", "description": "My card was debited twice for the same order.", "status": "open", "priority": "urgent", "source": "email", "tags": ["refund", "payment"],
+     "follow_ups": [
+       {"kind": "reply", "body": "Sorry about this. We have raised a refund for the duplicate charge."},
+       {"kind": "note", "body": "Duplicate capture confirmed in the payment gateway logs."}
+     ]},
+    {"customer": "priya", "subject": "Refund not received after 10 days", "description": "Return was picked up on the 2nd but no refund yet.", "status": "open", "priority": "high", "source": "portal", "tags": ["refund"],
+     "follow_ups": [
+       {"kind": "reply", "body": "The refund is approved and will reach you in 5-7 working days."}
+     ]},
+    {"customer": "rohan", "subject": "UPI payment failed but amount debited", "description": "UPI shows success, your site shows failed.", "status": "pending", "priority": "high", "source": "chat", "tags": ["upi", "payment"],
+     "follow_ups": [
+       {"kind": "note", "body": "Bank reference pending. Follow up with the payment team."}
+     ]},
+    {"customer": "sneha", "subject": "Order stuck in processing", "description": "Order ORD-1044 has not moved for four days.", "status": "open", "priority": "medium", "source": "email", "tags": ["delivery"]},
+    {"customer": "kabir", "subject": "Wrong size delivered", "description": "Ordered M, received L. Need an exchange.", "status": "pending", "priority": "medium", "source": "portal", "tags": ["exchange", "delivery"]},
+    {"customer": "ananya", "subject": "Cannot log in after password reset", "description": "Reset link says expired every time.", "status": "open", "priority": "medium", "source": "chat", "tags": ["account"]},
+    {"customer": "aarav", "subject": "Invoice missing GST number", "description": "Need a GST invoice for ORD-1001 for reimbursement.", "status": "resolved", "priority": "low", "source": "email", "tags": ["invoice"]},
+    {"customer": "priya", "subject": "Change delivery address", "description": "Please deliver ORD-1052 to my office address.", "status": "closed", "priority": "low", "source": "phone", "tags": ["delivery"]},
+    {"customer": "rohan", "subject": "EMI option not shown at checkout", "description": "No-cost EMI is missing for my credit card.", "status": "open", "priority": "low", "source": "portal", "tags": ["payment", "emi"]},
+    {"customer": "sneha", "subject": "Package marked delivered but not received", "description": "Tracking says delivered yesterday; nothing arrived.", "status": "open", "priority": "urgent", "source": "phone", "tags": ["delivery", "escalation"],
+     "follow_ups": [
+       {"kind": "reply", "body": "We have opened an investigation with the courier partner."}
+     ]},
+    {"customer": "kabir", "subject": "Coupon WELCOME10 not applying", "description": "Coupon fails with 'not eligible' on first order.", "status": "resolved", "priority": "low", "source": "chat", "tags": ["promotion"]},
+    {"customer": "ananya", "subject": "Subscription auto-renewed without notice", "description": "I was charged for annual renewal without a reminder.", "status": "open", "priority": "high", "source": "email", "tags": ["refund", "subscription"]},
+    {"customer": "aarav", "subject": "Damaged product on arrival", "description": "Screen cracked on delivery. Photos shared in chat.", "status": "pending", "priority": "high", "source": "chat", "tags": ["exchange", "damaged"]},
+    {"customer": "priya", "subject": "Request to delete my account", "description": "Please delete my account and personal data.", "status": "open", "priority": "medium", "source": "portal", "tags": ["account", "privacy"]},
+    {"customer": "rohan", "subject": "Bulk order quote for 200 units", "description": "Need pricing for 200 units for a corporate order.", "status": "pending", "priority": "medium", "source": "email", "tags": ["sales"]},
+    {"customer": "sneha", "subject": "Refund credited to wrong account", "description": "Refund went to an old card that is closed.", "status": "open", "priority": "high", "source": "phone", "tags": ["refund", "payment"]},
+    {"customer": "kabir", "subject": "KYC verification pending for wallet", "description": "Uploaded documents three days ago, still pending.", "status": "open", "priority": "medium", "source": "portal", "tags": ["kyc"]},
+    {"customer": "ananya", "subject": "Late delivery compensation", "description": "Delivery was five days late. Is there compensation?", "status": "closed", "priority": "low", "source": "email", "tags": ["delivery"]}
+  ]
+}
