@@ -233,8 +233,9 @@ tests/             one test module per source module
 - The cache, rate limiter and session budget live in process memory. Several processes
   using the same Freshdesk account share its quota. They reconcile through the response
   headers, but they can still receive 429s, which are retried.
-- Masking covers structured fields (emails, phones). Personal data written inside
-  ticket text is not redacted.
+- Masking covers contact emails and phone numbers, conversation senders and ticket CC
+  lists. Ticket text and custom fields are returned as written, so personal data the
+  merchant stores there is not redacted.
 - Attachments, and names for agents, groups and companies, are not returned.
 
 ## Long-term fixes

@@ -34,8 +34,9 @@ Example questions it can answer:
   tickets created in the last 30 days.
 - **Read attachments.** Ticket attachments are not returned.
 - **Resolve names for agents, groups or companies.** It returns their ids only.
-- **See unmasked personal data** by default. Emails show as `p***@example.com` and phones
-  as `***3210`. The merchant can turn this off with `FRESHDESK_MASK_PII=false`.
+- **See unmasked contact details** by default. Emails show as `p***@example.com` and
+  phones as `***3210`. The merchant can turn this off with `FRESHDESK_MASK_PII=false`.
+  Ticket text and custom fields are not masked, because their contents are free-form.
 - **See data in real time.** Reads are cached for up to `FRESHDESK_CACHE_TTL_SECONDS`
   (60s by default), and Freshdesk's search index can lag a few minutes behind changes.
 
