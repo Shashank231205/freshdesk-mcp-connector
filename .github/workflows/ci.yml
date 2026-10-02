@@ -15,8 +15,11 @@ jobs:
       matrix:
         python-version: ["3.11", "3.12", "3.13"]
     steps:
-      - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v10.2.0
+      # Actions are pinned to commit SHAs so a moved or hijacked tag cannot change them.
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           python-version: ${{ matrix.python-version }}
       - run: uv sync --locked
@@ -26,17 +29,26 @@ jobs:
       - run: uv run pytest
       - run: uv run python scripts/export_tools.py --check
 
-  secrets:
+  security:
     runs-on: ubuntu-latest
     env:
       GITLEAKS_VERSION: "8.30.0"
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           fetch-depth: 0
-      - name: Install gitleaks
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - name: Install gitleaks and verify its checksum
         run: |
-          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
-            | tar -xz gitleaks
-      - name: Scan the full git history
+          base="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}"
+          archive="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -sSfLO "${base}/${archive}"
+          curl -sSfL "${base}/gitleaks_${GITLEAKS_VERSION}_checksums.txt" | grep " ${archive}$" | sha256sum --check
+          tar -xzf "${archive}" gitleaks
+      - name: Scan the full git history for secrets
         run: ./gitleaks git --redact --verbose .
+      - name: Audit locked dependencies for known vulnerabilities
+        run: |
+          uv export --format requirements-txt --no-emit-project --quiet > requirements.txt
+          uvx pip-audit --strict --disable-pip --no-deps -r requirements.txt
