@@ -20,6 +20,7 @@ from mcp.types import TextContent
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 KNOWN_EMAIL = "priya.sharma@example.com"  # created by scripts/seed.py
+KNOWN_NAME = "sharma"
 MISSING_TICKET_ID = 999_999_999
 
 
@@ -45,7 +46,7 @@ class Smoke:
     async def run(self) -> None:
         tools = (await self.client.list_tools()).tools
         read_only = all(t.annotations and t.annotations.read_only_hint for t in tools)
-        self.record("6 read-only tools", len(tools) == 6 and read_only, f"{len(tools)} tools")
+        self.record("7 read-only tools", len(tools) == 7 and read_only, f"{len(tools)} tools")
 
         tickets, ms = await self.call("list_tickets", {"per_page": 5})
         items = tickets.get("items", [])
@@ -73,6 +74,10 @@ class Smoke:
 
         matches, ms = await self.call("search_contacts", {"filters": {"email": KNOWN_EMAIL}})
         self.record("search_contacts", matches.get("total", 0) >= 1, f"{ms:.0f} ms")
+
+        named, ms = await self.call("search_contacts_by_name", {"name": KNOWN_NAME})
+        names = [m["name"] for m in named.get("items", [])]
+        self.record("search_contacts_by_name", "Priya Sharma" in names, f"{ms:.0f} ms")
 
         missing, _ = await self.call("get_ticket", {"ticket_id": MISSING_TICKET_ID})
         self.record("unknown id -> not_found", missing.get("error") == "not_found", "")

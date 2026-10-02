@@ -19,6 +19,7 @@ EXPECTED_TOOLS = {
     "list_ticket_conversations",
     "get_contact",
     "search_contacts",
+    "search_contacts_by_name",
 }
 
 

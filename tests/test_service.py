@@ -96,6 +96,18 @@ async def test_search_stops_at_freshdesk_page_cap(
     assert not page.has_more
 
 
+async def test_name_search_returns_only_ids_and_names(
+    service: FreshdeskService, api: respx.MockRouter
+) -> None:
+    payload = [{"id": 501, "name": "Priya Sharma", "phone": "+91 98765 43210"}]
+    route = api.get("/contacts/autocomplete").respond(200, json=payload)
+
+    matches = await service.search_contacts_by_name("priya")
+
+    assert route.calls.last.request.url.params["term"] == "priya"
+    assert [m.model_dump() for m in matches.items] == [{"id": 501, "name": "Priya Sharma"}]
+
+
 async def test_conversations_are_shaped(service: FreshdeskService, api: respx.MockRouter) -> None:
     api.get("/tickets/101/conversations").respond(200, json=[conversation()])
 

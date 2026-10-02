@@ -20,6 +20,8 @@ from freshdesk_connector.models import (
     SOURCE_NAMES,
     STATUS_CODES,
     Contact,
+    ContactMatch,
+    ContactMatches,
     ContactSearch,
     Conversation,
     Page,
@@ -103,6 +105,14 @@ class FreshdeskService:
             items = [self._contact(raw) for raw in response.body["results"]]
             total = int(response.body["total"])
         return Page(items=items, page=page, has_more=_search_has_more(page, total), total=total)
+
+    async def search_contacts_by_name(self, name: str) -> ContactMatches:
+        # Freshdesk's autocomplete also returns phone numbers; only id and name are exposed.
+        response = await self._get("/contacts/autocomplete", {"term": name})
+        with _expected_shape():
+            return ContactMatches(
+                items=[ContactMatch(id=raw["id"], name=raw["name"]) for raw in response.body]
+            )
 
     async def _get(self, path: str, params: Params | None = None) -> ApiResponse:
         key = (path, tuple(sorted((params or {}).items())))

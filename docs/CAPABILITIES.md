@@ -14,12 +14,13 @@ agent's role allows.
 | Read a ticket's thread: customer messages, agent replies and internal notes, oldest first | `list_ticket_conversations` |
 | Look up the customer behind a ticket (`requester_id`) | `get_contact` |
 | Find a customer by exact email, phone, mobile, company or tag | `search_contacts` |
+| Find a customer by name; matches the start of any word, so "sharma" finds "Priya Sharma" | `search_contacts_by_name` |
 
 Example questions it can answer:
 
 - "Which urgent tickets are still open?" uses `search_tickets` with `status: ["open"]` and `priority: ["urgent"]`.
 - "What has happened on ticket 4512 so far?" uses `get_ticket`, then `list_ticket_conversations`.
-- "Has this customer raised other tickets this month?" uses `search_contacts` by email, then `list_tickets` with `requester_id` and `updated_since`.
+- "Has Priya Sharma raised other tickets?" uses `search_contacts_by_name`, then `list_tickets` with `requester_id`.
 
 ## The agent cannot
 

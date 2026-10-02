@@ -85,6 +85,17 @@ class Contact(BaseModel):
     updated_at: datetime
 
 
+class ContactMatch(BaseModel):
+    id: int = Field(
+        description="Contact id. Use it with get_contact or list_tickets(requester_id)."
+    )
+    name: str
+
+
+class ContactMatches(BaseModel):
+    items: list[ContactMatch]
+
+
 class Page(BaseModel, Generic[ItemT]):
     items: list[ItemT]
     page: int
