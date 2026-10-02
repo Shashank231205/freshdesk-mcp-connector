@@ -265,7 +265,10 @@ def configure_logging(level: str) -> None:
     handler = logging.StreamHandler(sys.stderr)
     handler.setFormatter(JsonFormatter())
     logging.basicConfig(level=level, handlers=[handler], force=True)
-    logging.getLogger("httpx").setLevel(logging.WARNING)
+    # HTTP libraries log full URLs, which carry search terms such as customer emails, and
+    # at DEBUG they log request internals. The client writes its own redacted log line.
+    for library in ("httpx", "httpcore"):
+        logging.getLogger(library).setLevel(logging.WARNING)
 
 
 def main() -> None:
