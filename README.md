@@ -38,7 +38,9 @@ Fill in two values in `.env`:
 
 - `FRESHDESK_DOMAIN`: your subdomain, e.g. `acme` for `acme.freshdesk.com`
 - `FRESHDESK_API_KEY`: in Freshdesk, click your profile picture, then
-  **Profile settings → View API key**
+  **Profile settings → View API key**. New accounts ship with API access turned off.
+  If the key is hidden, enable it under **Admin → Agents → (your agent) → Security and
+  permission → API Key access**.
 
 Optionally load fictional demo data (18 tickets, 6 customers, replies and notes):
 
@@ -103,7 +105,9 @@ Each layer calls only the one below it.
 **Authentication.** HTTP Basic auth with the API key, as Freshdesk requires. The key is
 held as a `SecretStr`, never logged, and sent only to `https://<domain>.freshdesk.com`.
 The domain is validated as a plain subdomain and redirects are not followed, so the key
-cannot be sent to another host.
+cannot be sent to another host. TLS certificates are verified against the operating
+system's trust store, so the connector works behind corporate proxies and antivirus
+HTTPS scanning without turning verification off.
 
 **Rate limits.** Freshdesk limits API calls per minute across the whole account (50 on
 a trial). A token bucket spaces requests, and after every response it is reconciled with
@@ -180,7 +184,8 @@ tests/             one test module per source module
 
 - One server process serves one merchant and one agent session (MCP over stdio).
 - The connector acts as one Freshdesk agent. Freshdesk's role permissions for that agent
-  decide what it can see.
+  decide what it can see. In production, give it a dedicated agent with the narrowest
+  role and ticket scope the use case needs, not an administrator account.
 - Freshdesk's REST API is authenticated with per-agent API keys and offers no OAuth flow,
   so this connector uses the API-key option from the brief.
 - The agent consuming the tools is untrusted with respect to ticket text: customer-written
