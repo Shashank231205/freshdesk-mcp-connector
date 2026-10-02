@@ -19,6 +19,7 @@ repeat reads, and returns compact, masked records sized for an agent's context w
 | `list_ticket_conversations` | `GET /tickets/{id}/conversations` | Replies and internal notes |
 | `get_contact` | `GET /contacts/{id}` | One customer |
 | `search_contacts` | `GET /search/contacts` | Customers by email, phone, mobile, company or tag |
+| `search_contacts_by_name` | `GET /contacts/autocomplete` | Customers by name (ids and names only) |
 
 Every tool is marked read-only in its MCP annotations and has an input and output schema.
 
@@ -73,6 +74,34 @@ npx @modelcontextprotocol/inspector uv run freshdesk-mcp
 ```
 
 On Windows PowerShell, use `npx.cmd` if script execution is disabled.
+
+## Agent example
+
+`scripts/support_agent.py` is a working LLM agent that uses this connector the way an
+Agent Studio agent would. It launches the connector over MCP, hands the tool schemas to
+the model, and lets the model decide what to call.
+
+```bash
+uv run python scripts/support_agent.py
+uv run python scripts/support_agent.py "Has Priya Sharma raised any other tickets?"
+```
+
+```
+Q: Which urgent refund tickets are open, and who raised them?
+
+  -> search_tickets({"filters":{"priority":["urgent"],"status":["open"],"tag":"refund"}})
+  -> get_contact({"contact_id":1130009701347})
+
+A (groq:openai/gpt-oss-120b):
+- Ticket #4 - urgent, open, tagged refund - raised by Aarav Mehta.
+```
+
+It needs `GROQ_API_KEY` and/or `GEMINI_API_KEY` in `.env`; both have free tiers.
+`AGENT_MODELS` sets an ordered chain of models across providers. A model that is
+rate-limited or overloaded hands over to the next one. The conversation so far is passed
+on as plain text, because tool-call history from one model is not always accepted by
+another (Gemini 3, for example, requires signatures it generated itself). A model that
+fails permanently, such as an unknown model name, is skipped for the rest of the session.
 
 ## Test
 
@@ -178,6 +207,7 @@ scripts/
   seed.py          loads fictional demo data into a trial account
   seed_data.json   the demo tickets, customers, replies and notes
   smoke.py         live end-to-end check over stdio
+  support_agent.py LLM agent answering questions through the connector
   export_tools.py  writes docs/tools.json from the code
 tests/             one test module per source module
 ```
