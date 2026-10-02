@@ -189,6 +189,9 @@ async def _call(
     except ConnectorError as error:
         outcome = error.code
         raise ToolError(json.dumps(error.to_dict())) from error
+    except Exception:
+        outcome = "unexpected_error"
+        raise
     finally:
         logger.info(
             "tool_call",

@@ -109,6 +109,16 @@ async def test_server_errors_are_retried_then_raised(
     assert route.call_count == settings.max_retries + 1
 
 
+async def test_non_json_success_becomes_upstream_error(
+    settings: Settings, api: respx.MockRouter
+) -> None:
+    api.get("/tickets/1").respond(200, text="<html>Down for maintenance</html>")
+
+    async with FreshdeskClient(settings) as client:
+        with pytest.raises(UpstreamError, match="not JSON"):
+            await client.get("/tickets/1")
+
+
 async def test_timeout_becomes_upstream_error(settings: Settings, api: respx.MockRouter) -> None:
     api.get("/tickets/1").mock(side_effect=httpx.ConnectTimeout("timed out"))
 
@@ -124,10 +134,25 @@ async def test_rate_limiter_waits_when_server_reports_no_quota_left() -> None:
         sleeps.append(seconds)
 
     limiter = RateLimiter(per_minute=60, clock=lambda: 0.0, sleep=fake_sleep)
-    limiter.observe(httpx.Headers({"X-RateLimit-Remaining": "0"}))
+    # Freshdesk sends these headers as decimals.
+    limiter.observe(httpx.Headers({"X-RateLimit-Total": "60.0", "X-RateLimit-Remaining": "0.0"}))
     await limiter.acquire()
 
     assert sleeps == [pytest.approx(1.0)]
+
+
+async def test_rate_limiter_adopts_the_account_quota() -> None:
+    sleeps: list[float] = []
+
+    async def fake_sleep(seconds: float) -> None:
+        sleeps.append(seconds)
+
+    limiter = RateLimiter(per_minute=50, clock=lambda: 0.0, sleep=fake_sleep)
+    limiter.observe(httpx.Headers({"X-RateLimit-Total": "120.0", "X-RateLimit-Remaining": "0.0"}))
+    await limiter.acquire()
+
+    # A 120/min account refills one call every 0.5 s.
+    assert sleeps == [pytest.approx(0.5)]
 
 
 async def test_rate_limiter_charges_extra_credits() -> None:

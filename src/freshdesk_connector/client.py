@@ -5,6 +5,7 @@ The client only issues GET requests, so the connector cannot change data in the 
 
 import asyncio
 import logging
+import math
 import random
 import ssl
 import time
@@ -78,16 +79,16 @@ class RateLimiter:
             self._tokens -= 1
 
     def observe(self, headers: httpx.Headers) -> None:
-        total = _int_header(headers, "X-RateLimit-Total")
+        total = _number_header(headers, "X-RateLimit-Total")
         if total and total != self._capacity:
-            self._capacity = float(total)
+            self._capacity = total
             self._tokens = min(self._tokens, self._capacity)
-        used = _int_header(headers, "X-RateLimit-Used-CurrentRequest")
+        used = _number_header(headers, "X-RateLimit-Used-CurrentRequest")
         if used and used > 1:
             self._tokens -= used - 1
-        remaining = _int_header(headers, "X-RateLimit-Remaining")
+        remaining = _number_header(headers, "X-RateLimit-Remaining")
         if remaining is not None:
-            self._tokens = min(self._tokens, float(remaining))
+            self._tokens = min(self._tokens, remaining)
 
     @property
     def _refill_rate(self) -> float:
@@ -102,9 +103,7 @@ class RateLimiter:
 class FreshdeskClient:
     """Async, read-only Freshdesk client. Use it as an async context manager."""
 
-    def __init__(
-        self, settings: Settings, transport: httpx.AsyncBaseTransport | None = None
-    ) -> None:
+    def __init__(self, settings: Settings) -> None:
         self._settings = settings
         self._limiter = RateLimiter(settings.rate_limit_per_minute)
         self._semaphore = asyncio.Semaphore(settings.max_concurrency)
@@ -118,7 +117,6 @@ class FreshdeskClient:
             timeout=settings.timeout_seconds,
             follow_redirects=False,
             verify=tls_context(),
-            transport=transport,
         )
 
     async def __aenter__(self) -> Self:
@@ -167,9 +165,13 @@ class FreshdeskClient:
 
         self._limiter.observe(response.headers)
         _log_request(path, attempt, started, response.status_code, response.headers)
-        if response.is_success:
-            return ApiResponse(body=response.json(), has_next_page="next" in response.links)
-        raise _error_from_response(response)
+        if not response.is_success:
+            raise _error_from_response(response)
+        try:
+            body = response.json()
+        except ValueError as exc:
+            raise UpstreamError("Freshdesk returned a response that is not JSON.") from exc
+        return ApiResponse(body=body, has_next_page="next" in response.links)
 
     def _retry_delay(self, error: ConnectorError, attempt: int) -> float | None:
         if not error.retryable or attempt >= self._settings.max_retries:
@@ -192,9 +194,9 @@ def _error_from_response(response: httpx.Response) -> ConnectorError:
     if status == 404:
         return NotFoundError("Freshdesk has no record at this path.")
     if status == 429:
-        retry_after = _int_header(response.headers, "Retry-After")
+        retry_after = _number_header(response.headers, "Retry-After")
         # Freshdesk's quota window is one minute, so a full window is the safe fallback.
-        return RateLimitedError(retry_after=float(60 if retry_after is None else retry_after))
+        return RateLimitedError(retry_after=60.0 if retry_after is None else retry_after)
     if status in (400, 422):
         return InvalidRequestError(
             f"Freshdesk rejected the request: {_describe_validation(response)}"
@@ -215,11 +217,13 @@ def _describe_validation(response: httpx.Response) -> str:
     return "; ".join(details) or str(body.get("description", "invalid request"))
 
 
-def _int_header(headers: httpx.Headers, name: str) -> int | None:
+def _number_header(headers: httpx.Headers, name: str) -> float | None:
+    # Freshdesk sends rate-limit headers as decimals, e.g. "50.0".
     try:
-        return int(headers[name])
+        value = float(headers[name])
     except (KeyError, ValueError):
         return None
+    return value if math.isfinite(value) and value >= 0 else None
 
 
 def _log_request(
@@ -237,7 +241,7 @@ def _log_request(
             "status": status,
             "attempt": attempt,
             "latency_ms": round((time.perf_counter() - started) * 1000, 1),
-            "rate_limit_remaining": _int_header(headers, "X-RateLimit-Remaining")
+            "rate_limit_remaining": _number_header(headers, "X-RateLimit-Remaining")
             if headers is not None
             else None,
         },
