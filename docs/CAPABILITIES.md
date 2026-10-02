@@ -50,7 +50,10 @@ Example questions it can answer:
 | Malformed or injected search queries | Agent passes structured filters; the connector builds the query and rejects quotes |
 | Agent stuck in a loop drains the API quota | Per-session call budget (`FRESHDESK_SESSION_CALL_BUDGET`, default 200) |
 | Too much text filling the context window | Compact records, text cut at `FRESHDESK_MAX_TEXT_CHARS` with a `*_truncated` flag |
+| Instructions hidden in invisible characters, or terminal escape codes in ticket text | Control, zero-width, bidirectional and tag characters are removed from everything Freshdesk returns |
 | Credentials leaking | Key held as a secret type, never logged; `.env` is git-ignored; gitleaks in pre-commit and CI |
+
+The full threat model is in [SECURITY.md](SECURITY.md).
 
 ## Errors the agent may see
 
