@@ -33,6 +33,18 @@ def test_rejects_values_that_could_break_out_of_quotes(value: str) -> None:
         TicketSearch(tag=value)
 
 
+def test_rejects_empty_filter_lists() -> None:
+    with pytest.raises(ValidationError):
+        TicketSearch(status=[])
+
+
+def test_rejects_reversed_date_range() -> None:
+    later, earlier = date(2026, 9, 30), date(2026, 9, 1)
+
+    with pytest.raises(ValidationError, match="created_from must be on or before"):
+        TicketSearch(created_from=later, created_to=earlier)
+
+
 def test_rejects_unknown_status() -> None:
     with pytest.raises(ValidationError):
         TicketSearch.model_validate({"status": ["escalated"]})

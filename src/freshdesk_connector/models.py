@@ -106,9 +106,11 @@ class Page(BaseModel, Generic[ItemT]):
 class TicketSearch(BaseModel):
     """Structured ticket filters. All given filters must match."""
 
-    status: list[StatusName] | None = Field(default=None, description="Any of these statuses.")
+    status: list[StatusName] | None = Field(
+        default=None, min_length=1, description="Any of these statuses."
+    )
     priority: list[PriorityName] | None = Field(
-        default=None, description="Any of these priorities."
+        default=None, min_length=1, description="Any of these priorities."
     )
     tag: QueryText | None = Field(default=None, description="Exact tag, e.g. 'refund'.")
     type: QueryText | None = Field(default=None, description="Exact ticket type, e.g. 'Problem'.")
@@ -122,6 +124,8 @@ class TicketSearch(BaseModel):
     @model_validator(mode="after")
     def _check_query(self) -> "TicketSearch":
         _require_filters(self)
+        _require_ordered("created", self.created_from, self.created_to)
+        _require_ordered("updated", self.updated_from, self.updated_to)
         self.to_query()
         return self
 
@@ -168,6 +172,12 @@ class ContactSearch(BaseModel):
 def _require_filters(search: BaseModel) -> None:
     if not search.model_dump(exclude_none=True):
         raise ValueError("give at least one filter")
+
+
+def _require_ordered(name: str, start: date | None, end: date | None) -> None:
+    # A reversed range silently matches nothing, which an agent would report as "no tickets".
+    if start and end and start > end:
+        raise ValueError(f"{name}_from must be on or before {name}_to")
 
 
 def _literal(value: str | int) -> str:
