@@ -30,6 +30,7 @@ from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from freshdesk_connector.client import tls_context
+from freshdesk_connector.sanitize import clean_text
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_QUESTION = "Which urgent refund tickets are open, and who raised them?"
@@ -218,8 +219,9 @@ def handoff(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
     if not facts:
         return [system, question]
     # Tool output now sits in a user turn, so fence it off: it holds customer-written text
-    # that must not be read as instructions.
-    context = "\n".join(facts)
+    # that must not be read as instructions. Escaping every "<" means nothing inside the
+    # data can form a tag, so a ticket cannot close the fence early and pose as the user.
+    context = "\n".join(facts).replace("<", "&lt;")
     return [
         system,
         {
@@ -366,7 +368,8 @@ async def run_agent(session: AgentSession, question: str, *, trace: bool = True)
         messages.append(_assistant_message(reply))
         tool_calls = reply.get("tool_calls") or []
         if not tool_calls:
-            run.answer = (reply.get("content") or "").strip()
+            # Model output can echo customer text; strip controls before it hits a screen.
+            run.answer = clean_text(reply.get("content") or "").strip()
             break
         for call in tool_calls:
             record, tool_message = await run_tool_call(session, call)
