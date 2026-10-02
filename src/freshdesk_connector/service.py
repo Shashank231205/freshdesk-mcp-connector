@@ -32,6 +32,7 @@ from freshdesk_connector.models import (
 
 TicketOrder = Literal["created_at", "updated_at", "due_by", "status"]
 
+_PHONE_DIGITS_SHOWN = 4  # enough to confirm a number with the customer, too few to use it
 _STATUS_NAMES = {code: name for name, code in STATUS_CODES.items()}
 _PRIORITY_NAMES = {code: name for name, code in PRIORITY_CODES.items()}
 
@@ -196,7 +197,8 @@ class FreshdeskService:
     def _phone(self, value: str) -> str:
         if not self._settings.mask_pii:
             return value
-        return f"***{value[-4:]}" if len(value) > 4 else "***"
+        visible = _PHONE_DIGITS_SHOWN
+        return f"***{value[-visible:]}" if len(value) > visible else "***"
 
 
 def _search_has_more(page: int, total: int) -> bool:

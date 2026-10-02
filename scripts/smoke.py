@@ -19,9 +19,16 @@ from mcp import Client, StdioServerParameters
 from mcp.types import TextContent
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-KNOWN_EMAIL = "priya.sharma@example.com"  # created by scripts/seed.py
-KNOWN_NAME = "sharma"
+SEED_DATA = REPO_ROOT / "scripts" / "seed_data.json"
 MISSING_TICKET_ID = 999_999_999
+
+
+def known_customer() -> dict[str, str]:
+    """A customer that scripts/seed.py creates, so the checks follow the seed data."""
+    customers: dict[str, dict[str, str]] = json.loads(SEED_DATA.read_text(encoding="utf-8"))[
+        "customers"
+    ]
+    return next(iter(customers.values()))
 
 
 @dataclass
@@ -72,12 +79,14 @@ class Smoke:
         email = str(contact.get("email") or "")
         self.record("get_contact masks PII", "***" in email, f"email={email}, {ms:.0f} ms")
 
-        matches, ms = await self.call("search_contacts", {"filters": {"email": KNOWN_EMAIL}})
+        customer = known_customer()
+        matches, ms = await self.call("search_contacts", {"filters": {"email": customer["email"]}})
         self.record("search_contacts", matches.get("total", 0) >= 1, f"{ms:.0f} ms")
 
-        named, ms = await self.call("search_contacts_by_name", {"name": KNOWN_NAME})
+        last_name = customer["name"].split()[-1].lower()
+        named, ms = await self.call("search_contacts_by_name", {"name": last_name})
         names = [m["name"] for m in named.get("items", [])]
-        self.record("search_contacts_by_name", "Priya Sharma" in names, f"{ms:.0f} ms")
+        self.record("search_contacts_by_name", customer["name"] in names, f"{ms:.0f} ms")
 
         missing, _ = await self.call("get_ticket", {"ticket_id": MISSING_TICKET_ID})
         self.record("unknown id -> not_found", missing.get("error") == "not_found", "")

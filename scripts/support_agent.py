@@ -38,6 +38,7 @@ PROVIDER_URLS = {
     "gemini": "https://generativelanguage.googleapis.com/v1beta/openai",
 }
 TRANSIENT_STATUSES = {429, 500, 502, 503, 504}
+DEFAULT_RETRY_SECONDS = 5.0  # used when a busy provider sends no Retry-After header
 
 SYSTEM_PROMPT = """\
 You are a support analyst for an online merchant. You answer questions about the
@@ -192,7 +193,7 @@ def _retry_after(response: httpx.Response) -> float | None:
     try:
         return float(response.headers["retry-after"])
     except (KeyError, ValueError):
-        return 5.0
+        return DEFAULT_RETRY_SECONDS
 
 
 def handoff(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:

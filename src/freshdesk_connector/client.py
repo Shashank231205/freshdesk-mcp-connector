@@ -33,6 +33,8 @@ logger = logging.getLogger(__name__)
 
 Params = Mapping[str, str | int]
 
+QUOTA_WINDOW_SECONDS = 60.0  # Freshdesk meters API calls per minute
+
 
 @dataclass(frozen=True, slots=True)
 class ApiResponse:
@@ -92,7 +94,7 @@ class RateLimiter:
 
     @property
     def _refill_rate(self) -> float:
-        return self._capacity / 60
+        return self._capacity / QUOTA_WINDOW_SECONDS
 
     def _refill(self) -> None:
         now = self._clock()
@@ -195,8 +197,9 @@ def _error_from_response(response: httpx.Response) -> ConnectorError:
         return NotFoundError("Freshdesk has no record at this path.")
     if status == 429:
         retry_after = _number_header(response.headers, "Retry-After")
-        # Freshdesk's quota window is one minute, so a full window is the safe fallback.
-        return RateLimitedError(retry_after=60.0 if retry_after is None else retry_after)
+        # Without Retry-After, waiting one full quota window is the safe fallback.
+        wait = QUOTA_WINDOW_SECONDS if retry_after is None else retry_after
+        return RateLimitedError(retry_after=wait)
     if status in (400, 422):
         return InvalidRequestError(
             f"Freshdesk rejected the request: {_describe_validation(response)}"
