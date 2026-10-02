@@ -10,6 +10,7 @@ import sys
 import time
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Annotated, Any, TypeVar
@@ -39,6 +40,8 @@ from freshdesk_connector.service import FreshdeskService, TicketOrder
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
+
+_request_id: ContextVar[str | None] = ContextVar("request_id", default=None)
 
 INSTRUCTIONS = """\
 Read-only access to one merchant's Freshdesk helpdesk.
@@ -199,6 +202,7 @@ async def _call(
     runtime = ctx.request_context.lifespan_context
     started = time.perf_counter()
     outcome = "ok"
+    _request_id.set(ctx.request_id)
     try:
         runtime.budget.spend()
         return await operation(runtime.service)
@@ -220,7 +224,11 @@ async def _call(
 
 
 class JsonFormatter(logging.Formatter):
-    """One JSON object per line, including any `extra` fields passed to the logger."""
+    """One JSON object per line, including any `extra` fields passed to the logger.
+
+    Lines logged while a tool call is running carry its MCP request id, so a tool call
+    and the Freshdesk requests it caused can be joined.
+    """
 
     _STANDARD = frozenset(logging.LogRecord("", 0, "", 0, "", None, None).__dict__) | {
         "message",
@@ -235,6 +243,8 @@ class JsonFormatter(logging.Formatter):
             "logger": record.name,
             "event": record.getMessage(),
         }
+        if (request_id := _request_id.get()) is not None:
+            entry["request_id"] = request_id
         entry.update({k: v for k, v in record.__dict__.items() if k not in self._STANDARD})
         if record.exc_info:
             entry["exc"] = self.formatException(record.exc_info)
