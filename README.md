@@ -8,6 +8,7 @@ repeat reads, and returns compact, masked records sized for an agent's context w
 
 - What the agent can and cannot do: [docs/CAPABILITIES.md](docs/CAPABILITIES.md)
 - MCP tool specification, generated from the code: [docs/tools.json](docs/tools.json)
+- How accurately an LLM agent answers through it: [docs/evaluation.md](docs/evaluation.md)
 
 ## Tools
 
@@ -102,6 +103,26 @@ rate-limited or overloaded hands over to the next one. The conversation so far i
 on as plain text, because tool-call history from one model is not always accepted by
 another (Gemini 3, for example, requires signatures it generated itself). A model that
 fails permanently, such as an unknown model name, is skipped for the rest of the session.
+
+## Agent evaluation
+
+`scripts/evaluate_agent.py` asks the agent ten questions with known answers in the demo
+data. Each answer is checked for the facts it must contain and for things it must not,
+such as unmasked phone numbers or invented ticket ids.
+
+```bash
+uv run python scripts/evaluate_agent.py --save
+```
+
+Latest run, in [docs/evaluation.md](docs/evaluation.md): 10/10 correct, 2.5 tool calls per
+answer, 2.5 s median latency.
+
+Results vary between runs, because the model that answers depends on free-tier rate
+limits. In an earlier run the smaller fallback model counted the open delivery tickets
+correctly but did not say whose they were, so that run scored 9/10. Building the
+evaluation also exposed a grader bug: models write names with narrow no-break spaces and
+Markdown emphasis, so plain text matching marked correct answers as wrong until the
+grader normalised both.
 
 ## Test
 
@@ -204,12 +225,14 @@ src/freshdesk_connector/
   service.py    read operations and record shaping
   server.py     MCP tools, session budget, logging, entry point
 scripts/
-  seed.py          loads fictional demo data into a trial account
-  seed_data.json   the demo tickets, customers, replies and notes
-  smoke.py         live end-to-end check over stdio
-  support_agent.py LLM agent answering questions through the connector
-  export_tools.py  writes docs/tools.json from the code
-tests/             one test module per source module
+  seed.py            loads fictional demo data into a trial account
+  seed_data.json     the demo tickets, customers, replies and notes
+  smoke.py           live end-to-end check over stdio
+  support_agent.py   LLM agent answering questions through the connector
+  evaluate_agent.py  measures the agent's accuracy on eval_cases.json
+  eval_cases.json    questions with known answers in the demo data
+  export_tools.py    writes docs/tools.json from the code
+tests/               one test module per source module
 ```
 
 ## Assumptions

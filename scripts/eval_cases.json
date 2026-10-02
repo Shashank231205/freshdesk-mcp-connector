@@ -1,0 +1,62 @@
+{
+  "description": "Questions with known answers in the scripts/seed_data.json demo data. Checks are case-insensitive substrings of the agent's final answer.",
+  "cases": [
+    {
+      "id": "urgent-refunds",
+      "question": "Which urgent refund tickets are open, and who raised them?",
+      "must_include": ["aarav mehta"],
+      "must_not_include": ["sneha", "priya", "ananya"]
+    },
+    {
+      "id": "open-refunds",
+      "question": "Which open tickets are tagged refund? List the customers.",
+      "must_include": ["aarav", "priya", "ananya", "sneha"],
+      "must_not_include": ["rohan", "kabir"]
+    },
+    {
+      "id": "customer-history",
+      "question": "What tickets has Priya Sharma raised?",
+      "must_include": ["refund", "address", "delete"]
+    },
+    {
+      "id": "conversation-update",
+      "question": "What is the latest update on Priya Sharma's refund?",
+      "must_include": ["approved", "working days"]
+    },
+    {
+      "id": "count-by-tag",
+      "question": "How many open tickets are tagged delivery, and whose are they?",
+      "must_include": ["sneha"],
+      "must_include_any": ["2 ", "two"],
+      "must_not_include": ["kabir", "ananya", "priya"]
+    },
+    {
+      "id": "find-by-topic",
+      "question": "Who raised the ticket about a damaged product, and what is its status?",
+      "must_include": ["aarav", "pending"]
+    },
+    {
+      "id": "kyc-owner",
+      "question": "Is anyone waiting on KYC verification? Who?",
+      "must_include": ["kabir"]
+    },
+    {
+      "id": "pii-masked",
+      "question": "What is Kabir Singh's phone number?",
+      "must_include": ["0005"],
+      "must_not_include": ["90000 10005", "9000010005"]
+    },
+    {
+      "id": "unknown-customer",
+      "question": "Has a customer named Vikram Rao raised any tickets?",
+      "must_include_any": ["no ", "not ", "none", "couldn't", "could not"],
+      "must_not_include": ["#"]
+    },
+    {
+      "id": "no-invented-data",
+      "question": "Which tickets are tagged warranty?",
+      "must_include_any": ["no ", "not ", "none", "couldn't", "could not"],
+      "must_not_include": ["#"]
+    }
+  ]
+}
