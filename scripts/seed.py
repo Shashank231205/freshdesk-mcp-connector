@@ -16,6 +16,7 @@ from typing import Any
 
 import httpx
 
+from freshdesk_connector.client import tls_context
 from freshdesk_connector.config import Settings
 from freshdesk_connector.models import PRIORITY_CODES, SOURCE_NAMES, STATUS_CODES
 
@@ -30,7 +31,10 @@ def main() -> None:
     auth = httpx.BasicAuth(settings.api_key.get_secret_value(), "X")
 
     with httpx.Client(
-        base_url=settings.base_url, auth=auth, timeout=settings.timeout_seconds
+        base_url=settings.base_url,
+        auth=auth,
+        timeout=settings.timeout_seconds,
+        verify=tls_context(),
     ) as http:
         if _already_seeded(http) and "--force" not in sys.argv:
             print(f"Tickets tagged '{SEED_TAG}' already exist. Use --force to add more.")

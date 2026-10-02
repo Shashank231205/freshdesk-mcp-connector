@@ -1,10 +1,11 @@
 import base64
+import ssl
 
 import httpx
 import pytest
 import respx
 
-from freshdesk_connector.client import FreshdeskClient, RateLimiter
+from freshdesk_connector.client import FreshdeskClient, RateLimiter, tls_context
 from freshdesk_connector.config import Settings
 from freshdesk_connector.errors import (
     AuthError,
@@ -23,6 +24,13 @@ async def test_sends_api_key_as_basic_auth(settings: Settings, api: respx.MockRo
 
     expected = base64.b64encode(b"test-key:X").decode()
     assert route.calls.last.request.headers["Authorization"] == f"Basic {expected}"
+
+
+def test_tls_verification_stays_on() -> None:
+    context = tls_context()
+
+    assert context.verify_mode == ssl.CERT_REQUIRED
+    assert context.check_hostname
 
 
 async def test_reports_next_page_from_link_header(

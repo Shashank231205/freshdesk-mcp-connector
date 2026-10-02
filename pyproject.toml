@@ -9,6 +9,7 @@ dependencies = [
     "mcp>=1.10",
     "pydantic>=2.7",
     "pydantic-settings>=2.3",
+    "truststore>=0.9",
 ]
 
 [project.scripts]

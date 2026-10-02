@@ -306,6 +306,7 @@ dependencies = [
     { name = "mcp" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
+    { name = "truststore" },
 ]
 
 [package.dev-dependencies]
@@ -323,6 +324,7 @@ requires-dist = [
     { name = "mcp", specifier = ">=1.10" },
     { name = "pydantic", specifier = ">=2.7" },
     { name = "pydantic-settings", specifier = ">=2.3" },
+    { name = "truststore", specifier = ">=0.9" },
 ]
 
 [package.metadata.requires-dev]

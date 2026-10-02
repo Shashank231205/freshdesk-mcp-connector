@@ -6,6 +6,7 @@ The client only issues GET requests, so the connector cannot change data in the 
 import asyncio
 import logging
 import random
+import ssl
 import time
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
@@ -13,6 +14,7 @@ from types import TracebackType
 from typing import Any, Self
 
 import httpx
+import truststore
 
 from freshdesk_connector import __version__
 from freshdesk_connector.config import Settings
@@ -35,6 +37,16 @@ Params = Mapping[str, str | int]
 class ApiResponse:
     body: Any
     has_next_page: bool
+
+
+def tls_context() -> ssl.SSLContext:
+    """Verify certificates against the operating system's trust store.
+
+    Corporate proxies and antivirus tools often re-sign HTTPS traffic with a root
+    certificate installed in the OS store. Using that store keeps full verification on
+    in those environments instead of failing or requiring verification to be disabled.
+    """
+    return truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
 
 
 class RateLimiter:
@@ -105,6 +117,7 @@ class FreshdeskClient:
             },
             timeout=settings.timeout_seconds,
             follow_redirects=False,
+            verify=tls_context(),
             transport=transport,
         )
 
