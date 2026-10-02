@@ -72,6 +72,8 @@ To try the tools by hand, use the MCP Inspector (needs Node.js):
 npx @modelcontextprotocol/inspector uv run freshdesk-mcp
 ```
 
+On Windows PowerShell, use `npx.cmd` if script execution is disabled.
+
 ## Test
 
 ```bash
