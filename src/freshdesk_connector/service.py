@@ -29,6 +29,7 @@ from freshdesk_connector.models import (
     TicketSearch,
     TicketSummary,
 )
+from freshdesk_connector.sanitize import clean_value
 
 TicketOrder = Literal["created_at", "updated_at", "due_by", "status"]
 
@@ -117,7 +118,13 @@ class FreshdeskService:
 
     async def _get(self, path: str, params: Params | None = None) -> ApiResponse:
         key = (path, tuple(sorted((params or {}).items())))
-        return await self._cache.get_or_load(key, lambda: self._client.get(path, params))
+        return await self._cache.get_or_load(key, lambda: self._fetch(path, params))
+
+    async def _fetch(self, path: str, params: Params | None) -> ApiResponse:
+        response = await self._client.get(path, params)
+        # Everything in the body may be customer-written and is headed for a model, so
+        # hidden and control characters are removed before it is cached or shaped.
+        return ApiResponse(body=clean_value(response.body), has_next_page=response.has_next_page)
 
     def _ticket_summary(self, raw: dict[str, Any]) -> TicketSummary:
         return TicketSummary.model_validate(self._ticket_fields(raw))
