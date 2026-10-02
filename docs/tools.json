@@ -4,7 +4,7 @@
   "tools": [
     {
       "name": "list_tickets",
-      "description": "List tickets, most recently updated first.\n\n        Without updated_since, Freshdesk only returns tickets created in the last 30 days.\n        ",
+      "description": "List tickets, most recently updated first.\n\nWithout updated_since, Freshdesk only returns tickets created in the last 30 days.",
       "inputSchema": {
         "properties": {
           "page": {
@@ -428,7 +428,7 @@
     },
     {
       "name": "search_tickets",
-      "description": "Find tickets by status, priority, tag, type, agent, group or date range.\n\n        All filters must match. Dates are inclusive. Freshdesk caps search at 300 results.\n        ",
+      "description": "Find tickets by status, priority, tag, type, agent, group or date range.\n\nAll filters must match. Dates are inclusive. Freshdesk caps search at 300 results.",
       "inputSchema": {
         "$defs": {
           "TicketSearch": {
@@ -1283,7 +1283,7 @@
     },
     {
       "name": "search_contacts_by_name",
-      "description": "Find customers by name. Matches the start of any word, ignoring case.\n\n        Returns ids and names; 'sharma' finds 'Priya Sharma'.\n        ",
+      "description": "Find customers by name. Matches the start of any word, ignoring case.\n\nReturns ids and names; 'sharma' finds 'Priya Sharma'.",
       "inputSchema": {
         "properties": {
           "name": {

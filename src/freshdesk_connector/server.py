@@ -4,6 +4,7 @@ Tools are thin. Each one charges the session budget, calls the service, and turn
 ConnectorError into a structured tool error the agent can read and act on.
 """
 
+import inspect
 import json
 import logging
 import sys
@@ -40,6 +41,7 @@ from freshdesk_connector.service import FreshdeskService, TicketOrder
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
+ToolFn = TypeVar("ToolFn", bound=Callable[..., Awaitable[Any]])
 
 _request_id: ContextVar[str | None] = ContextVar("request_id", default=None)
 
@@ -110,7 +112,14 @@ def create_server(settings: Settings) -> MCPServer[Runtime]:
         lifespan=lifespan,
     )
 
-    @server.tool(annotations=READ_ONLY)
+    def read_only_tool(fn: ToolFn) -> ToolFn:
+        # cleandoc strips docstring indentation, which Python before 3.13 keeps and which
+        # would otherwise reach the agent as wasted tokens.
+        description = inspect.cleandoc(fn.__doc__ or "")
+        server.add_tool(fn, description=description, annotations=READ_ONLY)
+        return fn
+
+    @read_only_tool
     async def list_tickets(
         ctx: ToolContext,
         page: ListPage = 1,
@@ -141,12 +150,12 @@ def create_server(settings: Settings) -> MCPServer[Runtime]:
             ),
         )
 
-    @server.tool(annotations=READ_ONLY)
+    @read_only_tool
     async def get_ticket(ctx: ToolContext, ticket_id: TicketId) -> Ticket:
         """Get one ticket with its plain-text description and custom fields."""
         return await _call(ctx, "get_ticket", lambda service: service.get_ticket(ticket_id))
 
-    @server.tool(annotations=READ_ONLY)
+    @read_only_tool
     async def search_tickets(
         ctx: ToolContext, filters: TicketSearch, page: SearchPage = 1
     ) -> Page[TicketSummary]:
@@ -158,7 +167,7 @@ def create_server(settings: Settings) -> MCPServer[Runtime]:
             ctx, "search_tickets", lambda service: service.search_tickets(filters, page)
         )
 
-    @server.tool(annotations=READ_ONLY)
+    @read_only_tool
     async def list_ticket_conversations(
         ctx: ToolContext, ticket_id: TicketId, page: ListPage = 1, per_page: PageSize = None
     ) -> Page[Conversation]:
@@ -169,12 +178,12 @@ def create_server(settings: Settings) -> MCPServer[Runtime]:
             lambda service: service.list_conversations(ticket_id, page=page, per_page=per_page),
         )
 
-    @server.tool(annotations=READ_ONLY)
+    @read_only_tool
     async def get_contact(ctx: ToolContext, contact_id: ContactId) -> Contact:
         """Get one customer contact. Use a ticket's requester_id as the contact id."""
         return await _call(ctx, "get_contact", lambda service: service.get_contact(contact_id))
 
-    @server.tool(annotations=READ_ONLY)
+    @read_only_tool
     async def search_contacts(
         ctx: ToolContext, filters: ContactSearch, page: SearchPage = 1
     ) -> Page[Contact]:
@@ -183,7 +192,7 @@ def create_server(settings: Settings) -> MCPServer[Runtime]:
             ctx, "search_contacts", lambda service: service.search_contacts(filters, page)
         )
 
-    @server.tool(annotations=READ_ONLY)
+    @read_only_tool
     async def search_contacts_by_name(ctx: ToolContext, name: NameQuery) -> ContactMatches:
         """Find customers by name. Matches the start of any word, ignoring case.
 
