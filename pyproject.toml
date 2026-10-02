@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "httpx>=0.27",
-    "mcp>=1.10",
+    "mcp>=2.2,<3",
     "pydantic>=2.7",
     "pydantic-settings>=2.3",
     "truststore>=0.9",
@@ -49,3 +49,4 @@ mypy_path = "src"
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+pythonpath = ["scripts"]
