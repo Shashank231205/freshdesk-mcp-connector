@@ -36,6 +36,14 @@ def test_case_reports_each_failed_check() -> None:
     ]
 
 
+def test_too_many_tool_calls_fails_even_with_a_good_answer() -> None:
+    case = Case(id="x", question="q", must_include=("used",), max_tool_calls=3)
+
+    assert case.problems("The gift card shows as used.", tool_calls=9) == [
+        "9 tool calls, expected at most 3"
+    ]
+
+
 def test_missing_answer_fails() -> None:
     assert Case(id="x", question="q").problems(None) == ["no final answer"]
 

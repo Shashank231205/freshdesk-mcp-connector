@@ -4,8 +4,10 @@ This is a development tool and the only code in the repo that writes to Freshdes
 connector itself is read-only. Requester emails use example.com, a domain reserved for
 documentation, so no real person is ever contacted.
 
-    uv run python scripts/seed.py            # skips if demo data already exists
-    uv run python scripts/seed.py --force    # add another copy
+Safe to run again: tickets whose subject already exists with the seed tag are skipped, so
+only tickets added to seed_data.json since the last run are created.
+
+    uv run python scripts/seed.py
 """
 
 import json
@@ -22,6 +24,7 @@ from freshdesk_connector.models import PRIORITY_CODES, SOURCE_NAMES, STATUS_CODE
 
 DATA_PATH = Path(__file__).resolve().parent / "seed_data.json"
 SEED_TAG = "demo-seed"
+MAX_LIST_PAGES = 10  # 1,000 tickets; a demo account never gets near it
 SOURCE_CODES = {name: code for code, name in SOURCE_NAMES.items()}
 
 
@@ -36,12 +39,14 @@ def main() -> None:
         timeout=settings.timeout_seconds,
         verify=tls_context(),
     ) as http:
-        if _already_seeded(http) and "--force" not in sys.argv:
-            print(f"Tickets tagged '{SEED_TAG}' already exist. Use --force to add more.")
+        existing = _seeded_subjects(http)
+        missing = [t for t in data["tickets"] if t["subject"] not in existing]
+        if not missing:
+            print("All demo tickets already exist.")
             return
 
         follow_ups = 0
-        for spec in data["tickets"]:
+        for spec in missing:
             customer = data["customers"][spec["customer"]]
             created = _request(http, "POST", "/tickets", json=_ticket_payload(spec, customer))
             ticket_id = created.json()["id"]
@@ -56,7 +61,11 @@ def main() -> None:
                 _request(http, "POST", path, json=payload)
                 follow_ups += 1
 
-    print(f"Seeded {len(data['tickets'])} tickets and {follow_ups} replies or notes.")
+    total = len(data["tickets"])
+    print(
+        f"Created {len(missing)} of {total} demo tickets ({total - len(missing)} already "
+        f"existed) and {follow_ups} replies or notes."
+    )
     print("Freshdesk search can take a few minutes to index new tickets.")
 
 
@@ -72,10 +81,19 @@ def _ticket_payload(spec: dict[str, Any], customer: dict[str, str]) -> dict[str,
     }
 
 
-def _already_seeded(http: httpx.Client) -> bool:
-    query = f"\"tag:'{SEED_TAG}'\""
-    response = _request(http, "GET", "/search/tickets", params={"query": query})
-    return int(response.json().get("total", 0)) > 0
+def _seeded_subjects(http: httpx.Client) -> set[str]:
+    """Subjects of tickets this script created earlier.
+
+    Uses the ticket list rather than search, because search can lag minutes behind.
+    """
+    subjects: set[str] = set()
+    params: dict[str, str | int] = {"updated_since": "2000-01-01T00:00:00Z", "per_page": 100}
+    for page in range(1, MAX_LIST_PAGES + 1):
+        response = _request(http, "GET", "/tickets", params={**params, "page": page})
+        subjects |= {t["subject"] for t in response.json() if SEED_TAG in (t.get("tags") or [])}
+        if "next" not in response.links:
+            break
+    return subjects
 
 
 def _request(http: httpx.Client, method: str, path: str, **kwargs: Any) -> httpx.Response:
@@ -83,8 +101,8 @@ def _request(http: httpx.Client, method: str, path: str, **kwargs: Any) -> httpx
         response = http.request(method, path, **kwargs)
         if response.status_code != 429:
             break
-        wait = int(response.headers.get("Retry-After", "60"))
-        print(f"Rate limited, waiting {wait}s")
+        wait = float(response.headers.get("Retry-After", "60"))
+        print(f"Rate limited, waiting {wait:.0f}s")
         time.sleep(wait)
     if response.is_error:
         sys.exit(f"{method} {path} failed with HTTP {response.status_code}: {response.text[:300]}")

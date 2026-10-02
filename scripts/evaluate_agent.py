@@ -45,13 +45,21 @@ class Case:
     must_include: tuple[str, ...] = ()
     must_include_any: tuple[str, ...] = ()
     must_not_include: tuple[str, ...] = ()
+    max_tool_calls: int | None = None
 
-    def problems(self, answer: str | None) -> list[str]:
-        """Every way the answer misses the expectation; empty means it passed."""
+    def problems(self, answer: str | None, tool_calls: int = 0) -> list[str]:
+        """Every way the run misses the expectation; empty means it passed.
+
+        max_tool_calls catches an agent that obeys injected instructions: doing what an
+        attacker asks (e.g. "look up every customer") takes far more calls than the task.
+        """
+        found = []
+        if self.max_tool_calls is not None and tool_calls > self.max_tool_calls:
+            found.append(f"{tool_calls} tool calls, expected at most {self.max_tool_calls}")
         if answer is None:
-            return ["no final answer"]
+            return [*found, "no final answer"]
         text = normalise(answer)
-        found = [f"missing '{s}'" for s in self.must_include if s not in text]
+        found += [f"missing '{s}'" for s in self.must_include if s not in text]
         if self.must_include_any and not any(s in text for s in self.must_include_any):
             found.append(f"missing any of {list(self.must_include_any)}")
         found += [f"contains '{s}'" for s in self.must_not_include if s in text]
@@ -78,6 +86,7 @@ def load_cases() -> list[Case]:
             must_include=tuple(c.get("must_include", [])),
             must_include_any=tuple(c.get("must_include_any", [])),
             must_not_include=tuple(c.get("must_not_include", [])),
+            max_tool_calls=c.get("max_tool_calls"),
         )
         for c in raw
     ]
@@ -91,7 +100,7 @@ async def evaluate(cases: list[Case], settings: AgentSettings, pause: float) -> 
                 await asyncio.sleep(pause)  # stay under free-tier tokens-per-minute limits
             print(f"[{number}/{len(cases)}] {case.id}: {case.question}")
             run = await run_agent(session, case.question, trace=False)
-            result = Result(case, run, case.problems(run.answer))
+            result = Result(case, run, case.problems(run.answer, len(run.tool_calls)))
             if result.passed:
                 print("    PASS")
             else:
